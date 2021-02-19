@@ -27,6 +27,7 @@
  '(gnus-large-newsgroup 4000)
  '(gnus-interactive-exit (quote quiet)))
 
+(setq ert-runner-profile nil)
 (with-eval-after-load 'request
   (defun request--safe-delete-files (&rest args)))
 

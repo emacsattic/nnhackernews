@@ -41,6 +41,7 @@ $(CASK_DIR): Cask
 clean: test-clean
 	$(CASK) clean-elc
 	rm -f tests/log/*
+	rm -f ert-profile*
 	rm -rf tests/test-install
 
 .PHONY: test-compile
