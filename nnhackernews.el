@@ -74,7 +74,8 @@ Otherwise, just display link."
 (defcustom nnhackernews-localhost "127.0.0.1"
   "Some users keep their browser in a separate domain.
 
-Do not set this to \"localhost\" as a numeric IP is required for the oauth handshake."
+Do not set this to \"localhost\" as a numeric IP is required for the oauth
+handshake."
   :type 'string
   :group 'nnhackernews)
 
@@ -89,19 +90,21 @@ Do not set this to \"localhost\" as a numeric IP is required for the oauth hands
   :group 'nnhackernews)
 
 (defcustom nnhackernews-max-render-bytes 300e3
-  "`quoted-printable-encode-region' bogs when the javascript spyware gets out of hand."
+  "`quoted-printable-encode-region' bogs when javascript spyware overdoes it."
   :type 'integer
   :group 'nnhackernews)
 
 (defvoo nnhackernews-status-string "")
 
 (defvar nnhackernews-avoid-rescoring nil
-  "Semaphore to avoid unnecessary scoring run caused by `nndraft-update-unread-articles' calling `gnus-group-get-new-news-this-group'.")
+  "Semaphore to avoid unnecessary scoring run caused by
+`nndraft-update-unread-articles' calling `gnus-group-get-new-news-this-group'.")
 
 (defvar nnhackernews--mutex-display-article
   (when (fboundp 'make-mutex)
     (make-mutex "nnhackernews--mutex-display-article"))
-  "Scoring runs via `gnus-after-getting-new-news-hook' cause 'Selecting deleted buffer'.")
+  "Scoring runs via `gnus-after-getting-new-news-hook' cause
+'Selecting deleted buffer'.")
 
 (defvar nnhackernews--last-item nil "Keep track of where we are.")
 
@@ -934,17 +937,18 @@ Request shall contain ATTRIBUTES, one of which is PARSER of the response, if pro
 
 (defun nnhackernews--request-edit (_item _body)
   "Replace body of ITEM with BODY."
-  (let (result)
-    ;; (nnhackernews--request
-    ;;  "nnhackernews--request-edit"
-    ;;  (format "%s/delete-confirm?%s"
-    ;;          nnhackernews-hacker-news-url
-    ;;          (url-build-query-string
-    ;;           (cons `(id ,item)
-    ;;                 (when root `((goto ,(format "item?id=%s" root)))))))
-    ;;  :backend 'curl
-    ;;  :success (nnhackernews--callback result #'nnhackernews--request-delete-success))
-    result))
+  ;; (let (result)
+  ;;   (nnhackernews--request
+  ;;    "nnhackernews--request-edit"
+  ;;    (format "%s/delete-confirm?%s"
+  ;;            nnhackernews-hacker-news-url
+  ;;            (url-build-query-string
+  ;;             (cons `(id ,item)
+  ;;                   (when root `((goto ,(format "item?id=%s" root)))))))
+  ;;    :backend 'curl
+  ;;    :success (nnhackernews--callback result #'nnhackernews--request-delete-success))
+  ;;   result)
+  )
 
 (defun nnhackernews--request-delete (item &optional root)
   "Cancel ITEM at root ROOT."
