@@ -33,7 +33,7 @@ Scenario: gnus-demon-scan-news while summary buffer open, then auto-rescore upon
   And of-record unreads for "nnhackernews:news" is 312
   And I press "q"
   And I dump buffer
-  Then of-record unreads for "nnhackernews:news" is 305
+  Then of-record unreads for "nnhackernews:news" is 303
 
 @reply_nologin
 Scenario: reply not having logged in yet
