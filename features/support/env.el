@@ -29,11 +29,9 @@
      ,@forms))
 
 (defun cleanup ()
-  (let* ((newsrc-file gnus-current-startup-file)
-         (quick-file (concat newsrc-file ".eld")))
-    (when (file-exists-p quick-file)
-      (message "Deleting %s" quick-file)
-      (delete-file quick-file))))
+  (when (file-exists-p gnus-newsrc-file)
+    (message "Deleting %s" gnus-newsrc-file)
+    (delete-file gnus-newsrc-file)))
 
 (defun save-log (buffer-or-name file-name)
   "from tkf/emacs-ipython-notebook ein:testing-save-buffer."

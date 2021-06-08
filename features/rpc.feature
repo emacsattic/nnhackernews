@@ -32,7 +32,8 @@ Scenario: gnus-demon-scan-news while summary buffer open, then auto-rescore upon
   Then prospective unreads for "nnhackernews:news" is 273
   And of-record unreads for "nnhackernews:news" is 312
   And I press "q"
-  Then of-record unreads for "nnhackernews:news" is 303
+  And I dump buffer
+  Then of-record unreads for "nnhackernews:news" is 305
 
 @reply_nologin
 Scenario: reply not having logged in yet

@@ -97,14 +97,14 @@ handshake."
 (defvoo nnhackernews-status-string "")
 
 (defvar nnhackernews-avoid-rescoring nil
-  "Semaphore to avoid unnecessary scoring run caused by
-`nndraft-update-unread-articles' calling `gnus-group-get-new-news-this-group'.")
+  "This semaphore avoids unnecessary scoring.
+The unnecessary run results from `nndraft-update-unread-articles'
+calling `gnus-group-get-new-news-this-group'.")
 
 (defvar nnhackernews--mutex-display-article
   (when (fboundp 'make-mutex)
     (make-mutex "nnhackernews--mutex-display-article"))
-  "Scoring runs via `gnus-after-getting-new-news-hook' cause
-'Selecting deleted buffer'.")
+  "Scoring in `gnus-after-getting-new-news-hook' emits 'Selecting deleted buffer'.")
 
 (defvar nnhackernews--last-item nil "Keep track of where we are.")
 
@@ -237,18 +237,16 @@ Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtab
   (copy-keymap nnhackernews-summary-mode-map)) ;; how does Gnus do this?
 
 (define-minor-mode nnhackernews-article-mode
-  "Minor mode for nnhackernews articles.  Disallow `gnus-article-reply-with-original'.
+  "Disallow `gnus-article-reply-with-original'.
 
-\\{gnus-article-mode-map}
-"
+\\{gnus-article-mode-map}"
   :lighter " HN"
   :keymap nnhackernews-article-mode-map)
 
 (define-minor-mode nnhackernews-summary-mode
   "Disallow \"reply\" commands in `gnus-summary-mode-map'.
 
-\\{nnhackernews-summary-mode-map}
-"
+\\{nnhackernews-summary-mode-map}"
   :lighter " HN"
   :keymap nnhackernews-summary-mode-map)
 
@@ -643,8 +641,29 @@ Originally written by Paul Issartel."
       `(with-mutex ,mtx ,@body)
     `(progn ,@body)))
 
+(defun nnhackernews--daring-scoring (group)
+  "Dare to score GROUP without the benefit of `gnus-summary-read-group'."
+  (with-temp-buffer
+    ;; withhold judgement of setqs, mimicking `gnus-summary-setup-buffer'
+    (setq gnus-newsgroup-name group) ;; now defvar-local, right?
+    (set-default 'gnus-newsgroup-name gnus-newsgroup-name)
+    (gnus-summary-mode)
+    (gnus-update-format-specifications 'summary 'summary-mode 'summary-dummy)
+    (gnus-update-summary-mark-positions)
+    (gnus-summary-set-local-parameters gnus-newsgroup-name)
+    ;; Save the active value in effect when the group was entered.
+    (setq gnus-newsgroup-active
+          (copy-tree (gnus-active gnus-newsgroup-name)))
+    (setq gnus-newsgroup-highest (cdr gnus-newsgroup-active))
+    (gnus-run-hooks 'gnus-select-group-hook)
+    (gnus-possibly-score-headers) ;; do the damage!
+    (gnus-run-hooks 'gnus-apply-kill-hook)
+    (setq gnus-newsgroup-prepared t)
+    (gnus-run-hooks 'gnus-summary-prepared-hook)
+    (gnus-group-update-group group nil t)))
+
 (defun nnhackernews--rescore (group force)
-  "Unforced when merely `gnus-summary-exit'.
+  "Unforced rescore of GROUP when merely `gnus-summary-exit'.
 FORCE in wake of `gnus-after-getting-new-news-hook'."
   (when (nnhackernews--gate group)
     (cl-loop repeat 5
@@ -672,9 +691,10 @@ FORCE in wake of `gnus-after-getting-new-news-hook'."
                                 group)
 		;; Q: Why `gnus-summary-read-group'?
 		;; A: `gnus-score-headers' message-clone-locals `gnus-summary-buffer'
+                ;; Problem: Fights with main thread UI since it calls
+                ;; `gnus-configure-windows',
                 (nnhackernews--with-mutex nnhackernews--mutex-display-article
-                  (gnus-summary-read-group group nil t)
-                  (nnhackernews--summary-exit group))))))))))
+                  (nnhackernews--daring-scoring group))))))))))
 
 (defalias 'nnhackernews--score-pending
   (lambda (&rest _args)
@@ -704,8 +724,8 @@ Otherwise *Group* buffer annoyingly overrepresents unread."
   "Reflect the scoring results now.
 
 If root article (story) is scored in GROUP, that means we've already
-read it.  This function seems redundant with `nnhackernews--score-unread' but might be
-faster on startup?  See 15195cc."
+read it.  This function seems redundant with `nnhackernews--score-unread'
+but might be faster on startup?  See 15195cc."
   (nnhackernews--with-group group
     (let ((preface (format "nnhackernews--mark-scored-as-read: %s not rescoring " group))
           (extant (nnhackernews-extant-summary-buffer gnus-newsgroup-name))
@@ -731,7 +751,7 @@ faster on startup?  See 15195cc."
                  (nnhackernews--summary-exit gnus-newsgroup-name))))))))
 
 (deffoo nnhackernews-request-group-scan (group &optional server info)
-  "M-g from *Group* calls this."
+  "\\[gnus-group-get-new-news-this-group] calls this."
   (nnhackernews--normalize-server)
   (nnhackernews--with-group group
     (gnus-message 5 "nnhackernews-request-group-scan: scanning %s..." group)

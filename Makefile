@@ -87,7 +87,7 @@ test: test-compile test-unit test-int
 
 .PHONY: test-int
 test-int: test-clean
-	$(CASK) exec ecukes --reporter magnars --debug
+	$(CASK) exec ecukes --reporter magnars
 
 .PHONY: dist-clean
 dist-clean:
