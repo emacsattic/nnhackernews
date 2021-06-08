@@ -98,8 +98,9 @@ Do not set this to \"localhost\" as a numeric IP is required for the oauth hands
 (defvar nnhackernews-avoid-rescoring nil
   "Semaphore to avoid unnecessary scoring run caused by `nndraft-update-unread-articles' calling `gnus-group-get-new-news-this-group'.")
 
-(defvar nnhackernews--mutex-display-article (when (fboundp 'make-mutex)
-                                      (make-mutex "nnhackernews--mutex-display-article"))
+(defvar nnhackernews--mutex-display-article
+  (when (fboundp 'make-mutex)
+    (make-mutex "nnhackernews--mutex-display-article"))
   "Scoring runs via `gnus-after-getting-new-news-hook' cause 'Selecting deleted buffer'.")
 
 (defvar nnhackernews--last-item nil "Keep track of where we are.")
@@ -609,7 +610,7 @@ Originally written by Paul Issartel."
   (nnhackernews--sethash (plist-get e :id) (plist-get e field) hashtb))
 
 (defun nnhackernews--summary-exit (group)
-  "Call `gnus-summary-exit' for GROUP without the hackery."
+  "Call `gnus-summary-exit' for GROUP without the rescoring mess."
   (remove-function (symbol-function 'gnus-summary-exit)
                    (symbol-function 'nnhackernews--score-pending))
   (unwind-protect
@@ -639,10 +640,9 @@ Originally written by Paul Issartel."
       `(with-mutex ,mtx ,@body)
     `(progn ,@body)))
 
-(defun nnhackernews--rescore (group &optional force)
-  "Can't figure out GROUP hook that can remove itself (quine conundrum).
-
-FORCE is generally t unless coming from `nnhackernews--score-pending'."
+(defun nnhackernews--rescore (group force)
+  "Unforced when merely `gnus-summary-exit'.
+FORCE in wake of `gnus-after-getting-new-news-hook'."
   (when (nnhackernews--gate group)
     (cl-loop repeat 5
              for ensured = (nnhackernews--ensure-score-files group)
@@ -667,14 +667,16 @@ FORCE is generally t unless coming from `nnhackernews--score-pending'."
               (if (zerop unread)
                   (gnus-message 7 "nnhackernews--rescore: skipping %s no unread"
                                 group)
+		;; Q: Why `gnus-summary-read-group'?
+		;; A: `gnus-score-headers' message-clone-locals `gnus-summary-buffer'
                 (nnhackernews--with-mutex nnhackernews--mutex-display-article
                   (gnus-summary-read-group group nil t)
                   (nnhackernews--summary-exit group))))))))))
 
 (defalias 'nnhackernews--score-pending
   (lambda (&rest _args)
-    (aif (gnus-group-name-at-point)
-        (nnhackernews--rescore it))))
+    (awhen (gnus-group-name-at-point)
+      (nnhackernews--rescore it nil))))
 
 (defun nnhackernews-extant-summary-buffer (group)
   "Return main thread's summary buffer for GROUP if extant."
@@ -691,15 +693,15 @@ Otherwise *Group* buffer annoyingly overrepresents unread."
   (when (or (gnus-native-method-p '(nnhackernews ""))
             (gnus-secondary-method-p '(nnhackernews "")))
     (nnhackernews--with-group group
-      (unless (or (nnhackernews-extant-summary-buffer gnus-newsgroup-name)
-		  nnhackernews-avoid-rescoring)
+      (when (and (not (nnhackernews-extant-summary-buffer gnus-newsgroup-name))
+		 (not nnhackernews-avoid-rescoring))
         (nnhackernews--rescore gnus-newsgroup-name t)))))
 
 (defun nnhackernews--mark-scored-as-read (group)
   "Reflect the scoring results now.
 
 If root article (story) is scored in GROUP, that means we've already
-read it.  This seems redundant with `nnhackernews--score-unread' but might be
+read it.  This function seems redundant with `nnhackernews--score-unread' but might be
 faster on startup?  See 15195cc."
   (nnhackernews--with-group group
     (let ((preface (format "nnhackernews--mark-scored-as-read: %s not rescoring " group))
@@ -1759,7 +1761,7 @@ Preserving indices so `nnhackernews-find-header' still works."
 (add-function :around (symbol-function 'gnus-summary-exit)
               (lambda (f &rest args)
                 (let ((gnus-summary-next-group-on-exit
-                       (if (nnhackernews--gate) nil
+                       (unless (nnhackernews--gate)
                          gnus-summary-next-group-on-exit)))
                   (apply f args))))
 
