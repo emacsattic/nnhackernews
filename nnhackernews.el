@@ -643,34 +643,33 @@ Originally written by Paul Issartel."
 
 (defun nnhackernews--daring-scoring (group)
   "Dare to score GROUP without the benefit of `gnus-summary-read-group'."
-  (save-excursion
-    (let ((gnus-use-scoring t)
-	  gnus-newsgroup-adaptive)
-      (with-temp-buffer
-	;; Withhold judgement of setqs, mimicking `gnus-summary-setup-buffer'
-	(setq gnus-newsgroup-name group) ;; now defvar-local, right?
-	(set-default 'gnus-newsgroup-name gnus-newsgroup-name)
-	(gnus-summary-mode)
-	(gnus-update-format-specifications 'summary 'summary-mode 'summary-dummy)
-	(gnus-update-summary-mark-positions)
-	(gnus-summary-set-local-parameters gnus-newsgroup-name)
-	(gnus-select-newsgroup group nil nil)
-	;; Save the active value in effect when the group was entered.
-	(setq gnus-newsgroup-active
-	      (copy-tree (gnus-active gnus-newsgroup-name)))
-	(setq gnus-newsgroup-highest (cdr gnus-newsgroup-active))
-	(gnus-run-hooks 'gnus-select-group-hook)
-	(gnus-possibly-score-headers) ;; do the damage!
-	(gnus-run-hooks 'gnus-apply-kill-hook)
-	(setq gnus-newsgroup-prepared t)
-	(gnus-run-hooks 'gnus-summary-prepared-hook)
-	(gnus-group-update-group group nil t)
-	(gnus-score-save)
-	(gnus-run-hooks 'gnus-exit-group-hook)
-	(gnus-summary-update-info)
-	(gnus-run-hooks 'gnus-summary-prepare-exit-hook)
-	(gnus-close-group group)
-	(gnus-run-hooks 'gnus-summary-exit-hook)))))
+  (with-temp-buffer
+    ;; Withhold judgement of setqs, mimicking `gnus-summary-setup-buffer'
+    (setq gnus-newsgroup-name group) ;; now defvar-local, right?
+    (set-default 'gnus-newsgroup-name gnus-newsgroup-name)
+    (gnus-summary-mode)
+    (gnus-update-format-specifications 'summary 'summary-mode 'summary-dummy)
+    (gnus-update-summary-mark-positions)
+    (gnus-summary-set-local-parameters gnus-newsgroup-name)
+    (gnus-select-newsgroup group nil nil)
+    ;; Save the active value in effect when the group was entered.
+    (setq gnus-newsgroup-active
+	  (copy-tree (gnus-active gnus-newsgroup-name)))
+    (setq gnus-newsgroup-highest (cdr gnus-newsgroup-active))
+    (gnus-run-hooks 'gnus-select-group-hook)
+    (gnus-possibly-score-headers)
+    (gnus-summary-prepare) ;; this actually updates unreads... can't blame a 20yo
+    (gnus-run-hooks 'gnus-apply-kill-hook)
+    (setq gnus-newsgroup-prepared t)
+    (gnus-run-hooks 'gnus-summary-prepared-hook)
+    (gnus-group-update-group group nil t)
+    (gnus-score-adaptive)
+    (gnus-score-save)
+    (gnus-run-hooks 'gnus-exit-group-hook)
+    (gnus-summary-update-info)
+    (gnus-run-hooks 'gnus-summary-prepare-exit-hook)
+    (gnus-close-group group)
+    (gnus-run-hooks 'gnus-summary-exit-hook)))
 
 (defun nnhackernews--rescore (group force)
   "Unforced rescore of GROUP when merely `gnus-summary-exit'.
