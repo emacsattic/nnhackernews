@@ -1496,13 +1496,11 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
              (if-let ((path (car (url-path-and-query (url-generic-parse-url url))))
                       (url (replace-regexp-in-string path "/comment" url))
                       (result (nnhackernews--request-reply url body hidden))
-                      (dom ('not-null)))
-                 (progn
-                   (setq dom (nnhackernews--domify result))
-                   (cl-destructuring-bind (tag params &rest args) dom
-                     (setq ret (and (eq tag 'html)
-                                    (string= (alist-get 'op params) "item")))
-                     (unless ret (nnhackernews--set-status-string dom))))
+                      (dom (nnhackernews--domify result)))
+                 (cl-destructuring-bind (tag params &rest args) dom
+                   (setq ret (and (eq tag 'html)
+                                  (string= (alist-get 'op params) "item")))
+                   (unless ret (nnhackernews--set-status-string dom)))
                (gnus-message 3 "nnhackernews-request-post: null reply from %s"
                              url)))
             (link
