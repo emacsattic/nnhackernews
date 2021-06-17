@@ -669,9 +669,7 @@ Originally written by Paul Issartel."
     (gnus-summary-update-info)
     (gnus-run-hooks 'gnus-summary-prepare-exit-hook)
     (gnus-close-group group)
-    (gnus-run-hooks 'gnus-summary-exit-hook))
-  (gnus-kill-buffer gnus-article-buffer)
-  (gnus-kill-buffer gnus-original-article-buffer))
+    (gnus-run-hooks 'gnus-summary-exit-hook)))
 
 (defun nnhackernews--rescore (group force)
   "Unforced rescore of GROUP when merely `gnus-summary-exit'.
