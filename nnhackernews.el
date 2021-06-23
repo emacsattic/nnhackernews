@@ -89,6 +89,11 @@ handshake."
   :type 'integer
   :group 'nnhackernews)
 
+(defcustom nnhackernews-refractory-ms 3900
+  "In June 2021, hackernews started throttling responses."
+  :type 'integer
+  :group 'nnhackernews)
+
 (defcustom nnhackernews-max-render-bytes 300e3
   "`quoted-printable-encode-region' bogs when javascript spyware overdoes it."
   :type 'integer
@@ -399,6 +404,7 @@ Remember `string-match-p' is always case-insensitive as is all elisp pattern mat
   "Store a cookie from URL with HIDDEN plist."
   (let* (result
          (auth-source-do-cache nil)
+         (auth-source-save-behavior 'ask)
          (auth-source-creation-prompts '((user . "news.ycombinator.com user: ")
                                          (secret . "Password for %u: ")))
          (found (car (auth-source-search :max 1 :host "news.ycombinator.com" :require
@@ -517,6 +523,11 @@ If GROUP classification omitted, figure it out."
   (and (stringp group)
        (listp (gnus-group-method group))
        (eq 'nnhackernews (car (gnus-group-method group)))))
+
+(defsubst nnhackernews--message-gate ()
+  "In `message-mode', `gnus-newsgroup-name' could be anything.
+So we cannot use `nnhackernews--gate'."
+  (nnhackernews--gate (car-safe gnus-message-group-art)))
 
 (deffoo nnhackernews-request-close ()
   (nnhackernews-close-server)
@@ -1454,10 +1465,9 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
 ;; nnhackernews-request-post
 (deffoo nnhackernews-request-post (&optional server)
   (nnhackernews--normalize-server)
-  (-when-let* ((url (aif message-reply-headers
-                        (nnhackernews--request-post-reply-url it)
-                      (format "%s/submit" nnhackernews-hacker-news-url)))
-               (hidden (nnhackernews--request-hidden url)))
+  (let ((url (aif message-reply-headers
+                 (nnhackernews--request-post-reply-url it)
+               (format "%s/submit" nnhackernews-hacker-news-url))))
     (let ((ret t)
           (title (or (message-fetch-field "Subject") (error "No Subject field")))
           (link (message-fetch-field "Link"))
@@ -1491,10 +1501,12 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
                                 (string= (alist-get 'op params) "item")))
                  (unless ret (nnhackernews--set-status-string dom)))))
             (reply-p
-             (if-let ((path (car (url-path-and-query (url-generic-parse-url url))))
-                      (url (replace-regexp-in-string path "/comment" url))
-                      (result (nnhackernews--request-reply url body hidden))
-                      (dom (nnhackernews--domify result)))
+             (-if-let* ((hidden (nnhackernews--request-hidden url))
+                        (path (car (url-path-and-query (url-generic-parse-url url))))
+                        (url (replace-regexp-in-string path "/comment" url))
+                        (result (progn (sleep-for 0 nnhackernews-refractory-ms)
+                                       (nnhackernews--request-reply url body hidden)))
+                        (dom (nnhackernews--domify result)))
                  (cl-destructuring-bind (tag params &rest args) dom
                    (setq ret (and (eq tag 'html)
                                   (string= (alist-get 'op params) "item")))
@@ -1502,17 +1514,22 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
                (gnus-message 3 "nnhackernews-request-post: null reply from %s"
                              url)))
             (link
-             (let* ((parsed-url (url-generic-parse-url link))
+             (let* ((hidden (nnhackernews--request-hidden url))
+                    (parsed-url (url-generic-parse-url link))
                     (host (url-host parsed-url))
                     (path (car (url-path-and-query (url-generic-parse-url url))))
                     (url (replace-regexp-in-string path "/r" url)))
                (if (and (stringp host) (not (zerop (length host))))
-                   (setq ret (nnhackernews--request-submit-link url title link hidden))
+                   (setq ret (progn
+                               (sleep-for 0 nnhackernews-refractory-ms)
+                               (nnhackernews--request-submit-link url title link hidden)))
                  (gnus-message 3 "nnhackernews-request-post: invalid url \"%s\"" link)
                  (setq ret nil))))
             (t
-             (let* ((path (car (url-path-and-query (url-generic-parse-url url))))
+             (let* ((hidden (nnhackernews--request-hidden url))
+                    (path (car (url-path-and-query (url-generic-parse-url url))))
                     (url (replace-regexp-in-string path "/r" url)))
+               (sleep-for 0 nnhackernews-refractory-ms)
                (setq ret (nnhackernews--request-submit-text url title body hidden)))))
       ret)))
 
@@ -1815,13 +1832,13 @@ Preserving indices so `nnhackernews-find-header' still works."
 (add-function
  :around (symbol-function 'message-supersede)
  (lambda (f &rest args)
-   (cond ((nnhackernews--gate)
+   (cond ((nnhackernews--message-gate)
           (add-function :override
                         (symbol-function 'mml-insert-mml-markup)
-                        'ignore)
-          (condition-case err
+                        #'ignore)
+          (unwind-protect
               (prog1 (apply f args)
-                (remove-function (symbol-function 'mml-insert-mml-markup) 'ignore)
+                (remove-function (symbol-function 'mml-insert-mml-markup) #'ignore)
                 (save-excursion
                   (save-restriction
                     (message-replace-header "From" (message-make-from))
@@ -1830,14 +1847,13 @@ Preserving indices so `nnhackernews-find-header' still works."
                     (goto-char (point-max))
                     (mm-inline-text-html nil)
                     (delete-region (point-min) (point)))))
-            (error (remove-function (symbol-function 'mml-insert-mml-markup) 'ignore)
-                   (error (error-message-string err)))))
+            (remove-function (symbol-function 'mml-insert-mml-markup) #'ignore)))
          (t (apply f args)))))
 
 (add-function
  :around (symbol-function 'message-send-news)
  (lambda (f &rest args)
-   (cond ((nnhackernews--gate)
+   (cond ((nnhackernews--message-gate)
           (let* ((dont-ask (lambda (prompt)
                              (when (cl-search "mpty article" prompt) t)))
                  (link-p (message-fetch-field "Link"))
@@ -1873,14 +1889,14 @@ Preserving indices so `nnhackernews-find-header' still works."
 (add-function
  :filter-return (symbol-function 'message-make-fqdn)
  (lambda (val)
-   (if (and (nnhackernews--gate)
+   (if (and (nnhackernews--message-gate)
             (cl-search "--so-tickle-me" val))
        "ycombinator.com" val)))
 
 (add-function
  :before-until (symbol-function 'message-make-from)
  (lambda (&rest _args)
-   (when (nnhackernews--gate)
+   (when (nnhackernews--message-gate)
      (concat (nnhackernews--who-am-i) "@ycombinator.com"))))
 
 (add-function
@@ -1891,7 +1907,7 @@ Preserving indices so `nnhackernews-find-header' still works."
                           (if (string= (car args) "from")
                               (concat fetched "@ycombinator.com")
                             fetched)))))
-     (when (nnhackernews--gate)
+     (when (nnhackernews--message-gate)
        (add-function :around
                      (symbol-function 'message-fetch-field)
                      concat-func))
