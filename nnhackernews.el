@@ -525,8 +525,7 @@ If GROUP classification omitted, figure it out."
        (eq 'nnhackernews (car (gnus-group-method group)))))
 
 (defsubst nnhackernews--message-gate ()
-  "In `message-mode', `gnus-newsgroup-name' could be anything.
-So we cannot use `nnhackernews--gate'."
+  "In `message-mode', `gnus-newsgroup-name' could be anything."
   (nnhackernews--gate (car-safe gnus-message-group-art)))
 
 (deffoo nnhackernews-request-close ()
@@ -1784,6 +1783,12 @@ Preserving indices so `nnhackernews-find-header' still works."
 ;; I believe I did try buffer-localizing hooks, and it wasn't sufficient
 (add-hook 'gnus-article-mode-hook #'nnhackernews-article-mode-activate)
 (add-hook 'gnus-summary-mode-hook #'nnhackernews-summary-mode-activate)
+(add-hook 'gnus-message-setup-hook
+          (lambda ()
+            (when (nnhackernews--message-gate)
+              (message-replace-header
+               "From"
+               (concat (nnhackernews--who-am-i) "@ycombinator.com")))))
 
 ;; Avoid having to select the GROUP to make the unread number go down.
 (add-hook 'gnus-after-getting-new-news-hook
@@ -1841,7 +1846,9 @@ Preserving indices so `nnhackernews-find-header' still works."
                 (remove-function (symbol-function 'mml-insert-mml-markup) #'ignore)
                 (save-excursion
                   (save-restriction
-                    (message-replace-header "From" (message-make-from))
+                    (message-replace-header
+                     "From"
+                     (concat (nnhackernews--who-am-i) "@ycombinator.com"))
                     (message-goto-body)
                     (narrow-to-region (point) (point-max))
                     (goto-char (point-max))
@@ -1892,12 +1899,6 @@ Preserving indices so `nnhackernews-find-header' still works."
    (if (and (nnhackernews--message-gate)
             (cl-search "--so-tickle-me" val))
        "ycombinator.com" val)))
-
-(add-function
- :before-until (symbol-function 'message-make-from)
- (lambda (&rest _args)
-   (when (nnhackernews--message-gate)
-     (concat (nnhackernews--who-am-i) "@ycombinator.com"))))
 
 (add-function
  :around (symbol-function 'message-is-yours-p)
