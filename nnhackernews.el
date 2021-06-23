@@ -89,7 +89,7 @@ handshake."
   :type 'integer
   :group 'nnhackernews)
 
-(defcustom nnhackernews-refractory-ms 3900
+(defcustom nnhackernews-refractory-ms 2200
   "In June 2021, hackernews started throttling responses."
   :type 'integer
   :group 'nnhackernews)
