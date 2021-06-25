@@ -713,7 +713,10 @@ FORCE in wake of `gnus-after-getting-new-news-hook'."
                 ;; Problem: Fights with main thread UI since it calls
                 ;; `gnus-configure-windows',
                 (nnhackernews--with-mutex nnhackernews--mutex-display-article
-                  (nnhackernews--daring-scoring group))))))))))
+                  (if (> (gnus-continuum-version) 5.13)
+                      (nnhackernews--daring-scoring group)
+                    (gnus-summary-read-group group nil t)
+                    (nnhackernews--summary-exit group)))))))))))
 
 (defalias 'nnhackernews--score-pending
   (lambda (&rest _args)
