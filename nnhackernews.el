@@ -706,7 +706,8 @@ FORCE in wake of `gnus-after-getting-new-news-hook'."
           (save-window-excursion
             (let (gnus-auto-select-subject
                   gnus-summary-next-group-on-exit
-                  (unread (length (gnus-list-of-unread-articles group))))
+                  (unread (length (gnus-list-of-unread-articles group)))
+                  (gnus-large-newsgroup 10000))
               (if (zerop unread)
                   (gnus-message 7 "nnhackernews--rescore: skipping %s no unread"
                                 group)
