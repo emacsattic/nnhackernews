@@ -73,11 +73,6 @@ jobs:
         sudo apt-get -yq update
         DEBIAN_FRONTEND=noninteractive sudo apt-get -yq install gnutls-bin sharutils dirmngr libreadline-dev libcurl4-openssl-dev
 
-    - name: versions
-      run: |
-        curl --version
-        emacs --version
-
     - name: test
       run: |
         make test-install
