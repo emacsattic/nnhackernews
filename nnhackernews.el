@@ -762,7 +762,8 @@ but might be faster on startup?  See 15195cc."
              (gnus-message 7 (concat preface "(extant %s)") (buffer-name extant)))
             (t
              (save-excursion
-               (let (gnus-auto-select-subject)
+               (let (gnus-auto-select-subject
+                     (gnus-large-newsgroup 10000))
                  (gnus-summary-read-group gnus-newsgroup-name nil t)
                  (with-current-buffer (gnus-summary-buffer-name gnus-newsgroup-name)
                    (dolist (datum gnus-newsgroup-data)

@@ -25,18 +25,7 @@
 
 Install
 =======
-As described in `Getting started`_, ensure melpa's whereabouts in ``init.el`` or ``.emacs``::
-
-   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-
-Then
-
-::
-
-   M-x package-refresh-contents RET
-   M-x package-install RET nnhackernews RET
-
-Alternatively, copy ``nnhackernews.el`` to a directory among ``C-h v RET load-path`` and add ``(require 'nnhackernews)`` to ``.emacs``.
+We are trying to push ELPASO_ as the preferred package installer.  Alternatively, directly clone this repo and ``make install``.
 
 Usage
 =====
@@ -82,3 +71,4 @@ The Gnus software that the author himself uses is at https://github.com/dickmao/
 His changes include non-blocking fetch, and fixing threads sorting.
 
 .. _Getting started: http://melpa.org/#/getting-started
+.. _ELPASO: http://github.com/dickmao/elpaso
