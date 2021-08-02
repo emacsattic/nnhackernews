@@ -1960,7 +1960,15 @@ Preserving indices so `nnhackernews-find-header' still works."
                  (touched (cdr new-touched)))
             (when (and touched new)
               (-if-let* ((old (gnus-score-get header))
-                         (elem (assoc match old))
+                         (type (nth 3 new))
+                         ;; insane -- must match gnus-summary-score-entry mangling
+                         (match*
+                          (cond ((or (eq type 'r) (eq type 's) (eq type nil))
+	                         (gnus-simplify-subject-re match))
+	                        ((eq type 'f)
+	                         (gnus-simplify-subject-fuzzy match))
+                                (t match)))
+                         (elem (assoc match* old))
                          (match-type (eq (nth 3 elem) (nth 3 new)))
                          (match-date (or (and (numberp (nth 2 elem)) (numberp (nth 2 new)))
                                          (and (not (nth 2 elem)) (not (nth 2 new))))))
