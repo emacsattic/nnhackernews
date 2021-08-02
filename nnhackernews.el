@@ -1972,12 +1972,13 @@ Preserving indices so `nnhackernews-find-header' still works."
                    (new (car new-touched))
                    (touched (cdr new-touched)))
               (when (and touched new)
-                (mapc (lambda (what) (my-delete-all what (gnus-score-get header)))
-                      (list match
-                            (gnus-simplify-subject-re match)
-                            (gnus-simplify-subject-fuzzy match)))
-                (gnus-score-set header (cons new (gnus-score-get header)) nil t)
-                (gnus-score-set 'touched '(t)))
+                (let ((old (gnus-score-get header)))
+                  (mapc (lambda (what) (setq old (my-delete-all what old)))
+                        (list match
+                              (gnus-simplify-subject-re match)
+                              (gnus-simplify-subject-fuzzy match)))
+                  (gnus-score-set header (cons new old) nil t)
+                  (gnus-score-set 'touched '(t))))
               new)))
          (t (apply f header match args)))))
 
