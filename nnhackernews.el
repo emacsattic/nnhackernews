@@ -1165,7 +1165,8 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
     (if (and nnhackernews--last-item (<= max-item nnhackernews--last-item))
         (gnus-message 7 "nnhackernews--incoming: max %s <= last %s"
                       max-item nnhackernews--last-item)
-      (let* ((stories (or static-newstories (nnhackernews--request-newstories)))
+      (let* (ids-seen
+             (stories (or static-newstories (nnhackernews--request-newstories)))
              (earliest-story (nth (1- (min nnhackernews-max-items-per-scan
                                            (length stories)))
                                   stories))
@@ -1178,14 +1179,21 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
         (dolist (item items)
           (-when-let* ((plst (nnhackernews--request-item item))
                        (not-deleted (not (plist-get plst :deleted)))
-                       (type (plist-get plst :type)))
+                       (type (plist-get plst :type))
+                       (novel-p (let ((seen-id (member (plist-get plst :id) ids-seen)))
+                                  (prog1 (not seen-id)
+                                    (push (plist-get plst :id) ids-seen)
+                                    (when seen-id
+                                      (gnus-message 3 "nnhackernews--incoming: duplicate %s"
+                                                    seen-id))))))
             (nnhackernews-add-entry nnhackernews-refs-hashtb plst :parent)
             (nnhackernews-add-entry nnhackernews-authors-hashtb plst :by)
             (nnhackernews--replace-hash type (lambda (x) (1+ (or x 0))) counts)
             (setq plst (plist-put plst :link_title
                                   (or (plist-get
                                        (nnhackernews--retrieve-root plst)
-                                       :title) "")))
+                                       :title)
+                                      "")))
             (cl-case (intern type)
               (job (nnhackernews--append-header plst nnhackernews--group-job))
               ((story comment) (nnhackernews--append-header plst))
@@ -1942,8 +1950,10 @@ Preserving indices so `nnhackernews-find-header' still works."
  :around (symbol-function 'gnus-summary-score-entry)
  (lambda (f header match &rest args)
    (cond ((nnhackernews--gate)
-          (let* ((new-touched
+          (let* ((match (downcase match))
+                 (new-touched
                   (let ((gnus-score-alist (copy-alist '((touched nil)))))
+                    ;; gnus-summary-score-entry modifies gnus-score-alist
                     (cons (apply f header match args)
                           (cl-some #'identity (gnus-score-get 'touched)))))
                  (new (car new-touched))
@@ -1954,7 +1964,7 @@ Preserving indices so `nnhackernews-find-header' still works."
                          (match-type (eq (nth 3 elem) (nth 3 new)))
                          (match-date (or (and (numberp (nth 2 elem)) (numberp (nth 2 new)))
                                          (and (not (nth 2 elem)) (not (nth 2 new))))))
-                  (setcar (cdr elem) (nth 1 new))
+                  (setf (nth 1 elem) (nth 1 new))
                 (gnus-score-set header (cons new old) nil t))
               (gnus-score-set 'touched '(t)))
             new))
