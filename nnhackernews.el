@@ -1950,32 +1950,35 @@ Preserving indices so `nnhackernews-find-header' still works."
  :around (symbol-function 'gnus-summary-score-entry)
  (lambda (f header match &rest args)
    (cond ((nnhackernews--gate)
-          (let* ((match (downcase match))
-                 (new-touched
-                  (let ((gnus-score-alist (copy-alist '((touched nil)))))
-                    ;; gnus-summary-score-entry modifies gnus-score-alist
-                    (cons (apply f header match args)
-                          (cl-some #'identity (gnus-score-get 'touched)))))
-                 (new (car new-touched))
-                 (touched (cdr new-touched)))
-            (when (and touched new)
-              (-if-let* ((old (gnus-score-get header))
-                         (type (nth 3 new))
-                         ;; insane -- must match gnus-summary-score-entry mangling
-                         (match*
-                          (cond ((or (eq type 'r) (eq type 's) (eq type nil))
-	                         (gnus-simplify-subject-re match))
-	                        ((eq type 'f)
-	                         (gnus-simplify-subject-fuzzy match))
-                                (t match)))
-                         (elem (assoc match* old))
-                         (match-type (eq (nth 3 elem) (nth 3 new)))
-                         (match-date (or (and (numberp (nth 2 elem)) (numberp (nth 2 new)))
-                                         (and (not (nth 2 elem)) (not (nth 2 new))))))
-                  (setf (nth 1 elem) (nth 1 new))
-                (gnus-score-set header (cons new old) nil t))
-              (gnus-score-set 'touched '(t)))
-            new))
+          (cl-flet ((my-delete-all ;; assoc-delete-all for emacs-25
+                     (key alist)
+                     (progn
+                       (while (and (consp (car alist))
+	                           (equal (caar alist) key))
+                         (setq alist (cdr alist)))
+                       (let ((tail alist) tail-cdr)
+                         (while (setq tail-cdr (cdr tail))
+                           (if (and (consp (car tail-cdr))
+	                            (equal (caar tail-cdr) key))
+	                       (setcdr tail (cdr tail-cdr))
+	                     (setq tail tail-cdr))))
+                       alist)))
+            (let* ((match (downcase match))
+                   (new-touched
+                    (let ((gnus-score-alist (copy-alist '((touched nil)))))
+                      ;; gnus-summary-score-entry modifies gnus-score-alist
+                      (cons (apply f header match args)
+                            (cl-some #'identity (gnus-score-get 'touched)))))
+                   (new (car new-touched))
+                   (touched (cdr new-touched)))
+              (when (and touched new)
+                (mapc (lambda (what) (my-delete-all what (gnus-score-get header)))
+                      (list match
+                            (gnus-simplify-subject-re match)
+                            (gnus-simplify-subject-fuzzy match)))
+                (gnus-score-set header (cons new (gnus-score-get header)) nil t)
+                (gnus-score-set 'touched '(t)))
+              new)))
          (t (apply f header match args)))))
 
 ;; the let'ing to nil of `gnus-summary-display-article-function'
