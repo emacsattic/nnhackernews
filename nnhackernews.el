@@ -1180,7 +1180,8 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
           (-when-let* ((plst (nnhackernews--request-item item))
                        (not-deleted (not (plist-get plst :deleted)))
                        (type (plist-get plst :type))
-                       (novel-p (let ((seen-id (member (plist-get plst :id) ids-seen)))
+                       (novel-p (let ((seen-id (car (member (plist-get plst :id)
+                                                            ids-seen))))
                                   (prog1 (not seen-id)
                                     (push (plist-get plst :id) ids-seen)
                                     (when seen-id
