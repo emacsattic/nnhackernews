@@ -1179,21 +1179,7 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
         (dolist (item items)
           (-when-let* ((plst (nnhackernews--request-item item))
                        (not-deleted (not (plist-get plst :deleted)))
-                       (type (plist-get plst :type))
-                       ;; (novel-p (-if-let* ((id (plist-get plst :id))
-                       ;;                     (location (nnhackernews--gethash id nnhackernews-location-hashtb)))
-                       ;;              (prog1 nil
-                       ;;                (cl-destructuring-bind (group . index) location
-                       ;;                  (let ((extant (elt (nnhackernews-get-headers group) index)))
-                       ;;                    (gnus-message 3 "nnhackernews-incoming: %s => %s"
-                       ;;                                  extant
-                       ;;                                  plst)
-                       ;;                    (setf (elt (nnhackernews-get-headers group) index)
-                       ;;                          plst)
-                       ;;                    (error "nnhackernews-incoming: take? %s"
-                       ;;                           (nnhackernews-find-header id t)))))
-                       ;;            t))
-                       )
+                       (type (plist-get plst :type)))
             (nnhackernews-add-entry nnhackernews-refs-hashtb plst :parent)
             (nnhackernews-add-entry nnhackernews-authors-hashtb plst :by)
             (nnhackernews--replace-hash type (lambda (x) (1+ (or x 0))) counts)
