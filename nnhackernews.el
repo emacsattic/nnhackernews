@@ -483,7 +483,8 @@ If GROUP classification omitted, figure it out."
     (nnhackernews--sethash id
                            (cons group (length (nnhackernews-get-headers group)))
                            nnhackernews-location-hashtb)
-    (setf (nnhackernews-alist-get group nnhackernews-headers-alist nil nil #'equal) (list (nconc (nnhackernews-get-headers group) (list plst))))
+    (setf (nnhackernews-alist-get group nnhackernews-headers-alist nil nil #'equal)
+          (list (nconc (nnhackernews-get-headers group) (list plst))))
     plst))
 
 (nnoo-define-basics nnhackernews)
@@ -1165,8 +1166,7 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
     (if (and nnhackernews--last-item (<= max-item nnhackernews--last-item))
         (gnus-message 7 "nnhackernews--incoming: max %s <= last %s"
                       max-item nnhackernews--last-item)
-      (let* (ids-seen
-             (stories (or static-newstories (nnhackernews--request-newstories)))
+      (let* ((stories (or static-newstories (nnhackernews--request-newstories)))
              (earliest-story (nth (1- (min nnhackernews-max-items-per-scan
                                            (length stories)))
                                   stories))
@@ -1180,13 +1180,20 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
           (-when-let* ((plst (nnhackernews--request-item item))
                        (not-deleted (not (plist-get plst :deleted)))
                        (type (plist-get plst :type))
-                       (novel-p (let ((seen-id (car (member (plist-get plst :id)
-                                                            ids-seen))))
-                                  (prog1 (not seen-id)
-                                    (push (plist-get plst :id) ids-seen)
-                                    (when seen-id
-                                      (gnus-message 3 "nnhackernews--incoming: duplicate %s"
-                                                    seen-id))))))
+                       ;; (novel-p (-if-let* ((id (plist-get plst :id))
+                       ;;                     (location (nnhackernews--gethash id nnhackernews-location-hashtb)))
+                       ;;              (prog1 nil
+                       ;;                (cl-destructuring-bind (group . index) location
+                       ;;                  (let ((extant (elt (nnhackernews-get-headers group) index)))
+                       ;;                    (gnus-message 3 "nnhackernews-incoming: %s => %s"
+                       ;;                                  extant
+                       ;;                                  plst)
+                       ;;                    (setf (elt (nnhackernews-get-headers group) index)
+                       ;;                          plst)
+                       ;;                    (error "nnhackernews-incoming: take? %s"
+                       ;;                           (nnhackernews-find-header id t)))))
+                       ;;            t))
+                       )
             (nnhackernews-add-entry nnhackernews-refs-hashtb plst :parent)
             (nnhackernews-add-entry nnhackernews-authors-hashtb plst :by)
             (nnhackernews--replace-hash type (lambda (x) (1+ (or x 0))) counts)
