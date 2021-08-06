@@ -901,6 +901,7 @@ Request shall contain ATTRIBUTES, one of which is PARSER of the response, if pro
   (let ((request-backend backend))
     (apply #'request url
            :sync t
+           :timeout 10
            :error (apply-partially #'nnhackernews--request-error caller)
            attributes)))
 
