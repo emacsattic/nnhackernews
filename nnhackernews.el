@@ -655,14 +655,16 @@ Originally written by Paul Issartel."
 (defun nnhackernews--daring-scoring (group)
   "Dare to score GROUP without the benefit of `gnus-summary-read-group'."
   (with-temp-buffer
-    ;; Withhold judgement of setqs, mimicking `gnus-summary-setup-buffer'
+    ;; Withhold judgment of setqs, mimicking `gnus-summary-setup-buffer'
     (setq gnus-newsgroup-name group) ;; now defvar-local, right?
     (set-default 'gnus-newsgroup-name gnus-newsgroup-name)
     (gnus-summary-mode)
     (gnus-update-format-specifications 'summary 'summary-mode 'summary-dummy)
     (gnus-update-summary-mark-positions)
     (gnus-summary-set-local-parameters gnus-newsgroup-name)
-    (gnus-select-newsgroup group nil nil)
+    (let ((gnus-single-article-buffer t))
+      ;; employ a hack that messes with *Article*, not an article I'm reading
+      (gnus-select-newsgroup group nil nil))
     ;; Save the active value in effect when the group was entered.
     (setq gnus-newsgroup-active
 	  (copy-tree (gnus-active gnus-newsgroup-name)))
@@ -681,8 +683,10 @@ Originally written by Paul Issartel."
     (gnus-run-hooks 'gnus-summary-prepare-exit-hook)
     (gnus-close-group group)
     (gnus-run-hooks 'gnus-summary-exit-hook)
-    (gnus-kill-buffer gnus-article-buffer)
-    (gnus-kill-buffer gnus-original-article-buffer)))
+    (when (equal gnus-article-buffer (default-value 'gnus-article-buffer))
+      ;; can't be killing an article I was reading!
+      (gnus-kill-buffer gnus-article-buffer)
+      (gnus-kill-buffer gnus-original-article-buffer))))
 
 (defun nnhackernews--rescore (group force)
   "Unforced rescore of GROUP when merely `gnus-summary-exit'.
@@ -887,7 +891,8 @@ The two hashtables being reconciled are `nnhackernews-location-hashtb' and
     stories))
 
 (cl-defun nnhackernews--request (caller url
-                                 &rest attributes &key parser (backend 'url-retrieve)
+                                 &rest attributes
+                                 &key parser (backend 'url-retrieve) (timeout 10)
                                  &allow-other-keys)
   "Prefix errors with CALLER executing synchronous request to URL.
 
@@ -901,7 +906,7 @@ Request shall contain ATTRIBUTES, one of which is PARSER of the response, if pro
   (let ((request-backend backend))
     (apply #'request url
            :sync t
-           :timeout 10
+           :timeout timeout
            :error (apply-partially #'nnhackernews--request-error caller)
            attributes)))
 
