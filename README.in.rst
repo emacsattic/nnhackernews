@@ -66,4 +66,4 @@ From the summary buffer, ``/o`` redisplays articles already read.  ``x`` undispl
 Gnus beginners may find the interface bewildering.  In particular, groups with no unread articles do not display.  Use ``L`` to bring them out of hiding.
 
 .. _Getting started: http://melpa.org/#/getting-started
-.. _ELPASO: http://github.com/dickmao/elpaso
+.. _ELPASO: http://github.com/commercial-emacs/elpaso

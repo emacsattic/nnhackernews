@@ -896,7 +896,7 @@ The two hashtables being reconciled are `nnhackernews-location-hashtb' and
                                  &allow-other-keys)
   "Prefix errors with CALLER executing synchronous request to URL.
 
-Request shall contain ATTRIBUTES, one of which is PARSER of the response, if provided (shall default to verbatim dump of response, if not).  BACKEND can be curl (defaults to `url-retrieve')."
+Request shall contain ATTRIBUTES, one of which is PARSER of the response, if provided (shall default to verbatim dump of response, if not).  BACKEND can be curl (defaults to `url-retrieve').  TIMEOUT is seconds, default 10."
   (unless parser
     (setq attributes (append attributes (list :parser #'buffer-string))))
   (setq attributes
