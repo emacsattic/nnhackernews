@@ -1573,12 +1573,13 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
           result)
     result))
 
-(defsubst nnhackernews--fallback-link ()
+(defun nnhackernews--fallback-link ()
   "Cannot render story."
-  (let* ((header (nnhackernews--get-header
-                  (cdr gnus-article-current)
-                  (gnus-group-real-name (car gnus-article-current))))
-         (body (nnhackernews--massage (nnhackernews--get-body header))))
+  (-when-let* ((group-article gnus-article-current)
+               (header (nnhackernews--get-header
+                        (cdr group-article)
+                        (gnus-group-real-name (car group-article))))
+               (body (nnhackernews--massage (nnhackernews--get-body header))))
     (with-current-buffer gnus-original-article-buffer
       (article-goto-body)
       (delete-region (point) (point-max))
@@ -1592,10 +1593,13 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
         (error
          (if nnhackernews-render-story
              (progn
-               (gnus-message 7 "nnhackernews--display-article: '%s' (falling back...)"
-                             (error-message-string err))
-               (nnhackernews--fallback-link)
-               (gnus-article-prepare article all-headers))
+               (let ((fallback-ok (nnhackernews--fallback-link)))
+                 (when fallback-ok
+                   (gnus-article-prepare article all-headers))
+                 (gnus-message (if fallback-ok 7 5)
+                               "nnhackernews--display-article: '%s' (falling back...%s)"
+                               (error-message-string err)
+                               (if fallback-ok "" "denied"))))
            (error (error-message-string err)))))))
   "In case of shr failures, dump original link.")
 
