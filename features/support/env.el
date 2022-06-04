@@ -58,6 +58,8 @@ And if so, 2-SYM, etc. until (N-1)-SYM, then return N-SYM."
            do (cl-incf occur)))
 
 (Setup
+ (custom-set-variables '(gnus-background-get-unread-articles nil)
+                       '(canlock-password "huh?"))
  (add-function
   :after (symbol-function 'nnhackernews--request-login)
   (lambda (&rest _)

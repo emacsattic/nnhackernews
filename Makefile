@@ -99,7 +99,7 @@ dist: dist-clean
 
 .PHONY: install
 install: dist
-	$(EMACS) -Q --batch --eval "(package-initialize)" \
+	$(EMACS) -Q --batch -f package-initialize \
 	  --eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\"))" \
 	  --eval "(package-refresh-contents)" \
 	  --eval "(package-install-file (car (file-expand-wildcards \"dist/nnhackernews*.el\")))"

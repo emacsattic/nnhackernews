@@ -169,7 +169,8 @@ Same argument meanings for KEY ALIST DEFAULT REMOVE and TESTFN."
 (defsubst nnhackernews--gethash (string hashtable &optional dflt)
   "Get corresponding value of STRING from HASHTABLE, or DFLT if undefined.
 
-Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtables."
+Starting in emacs-src commit c1b63af, Gnus moved from obarrays to
+normal hashtables."
   (if (fboundp 'gnus-gethash)
       (let ((sym (intern-soft string hashtable)))
         (if (or (null sym) (not (boundp sym))) dflt (symbol-value sym)))
@@ -178,7 +179,8 @@ Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtab
 (defsubst nnhackernews--replace-hash (string func hashtable)
   "Set value of STRING to FUNC applied to existing STRING value in HASHTABLE.
 
-Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtables."
+Starting in emacs-src commit c1b63af, Gnus moved from obarrays to
+normal hashtables."
   (let* ((capture (nnhackernews--gethash string hashtable))
          (replace-with (funcall func capture)))
     (if (fboundp 'gnus-sethash)
@@ -188,7 +190,8 @@ Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtab
 (defmacro nnhackernews--remhash (string hashtable)
   "Remove STRING from HASHTABLE.
 
-Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtables."
+Starting in emacs-src commit c1b63af, Gnus moved from obarrays to
+normal hashtables."
   `(,(if (fboundp 'gnus-sethash)
          'unintern
        'remhash)
@@ -200,7 +203,8 @@ Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtab
 (defmacro nnhackernews--sethash (string value hashtable)
   "Set corresponding value of STRING to VALUE in HASHTABLE.
 
-Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtables."
+Starting in emacs-src commit c1b63af, Gnus moved from obarrays to
+normal hashtables."
   `(,(if (fboundp 'gnus-sethash)
          'gnus-sethash
        'puthash)
@@ -209,7 +213,8 @@ Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtab
 (defmacro nnhackernews--maphash (func table)
   "Map FUNC taking key and value over TABLE, return nil.
 
-Starting in emacs-src commit c1b63af, Gnus moved from obarrays to normal hashtables."
+Starting in emacs-src commit c1b63af, Gnus moved from obarrays to
+normal hashtables."
   (declare (indent nil))
   `(,(if (fboundp 'gnus-gethash-safe)
          'mapatoms
@@ -390,8 +395,9 @@ If NOQUERY, return nil and avoid querying if not extant."
 (cl-defun nnhackernews--request-login-success (&key data &allow-other-keys)
   "Validate login depending on what DATA say.
 
-After some time, logging in via browser recaptcha might be necessary.
-Remember `string-match-p' is always case-insensitive as is all elisp pattern matching."
+After some time, logging in via browser recaptcha might be
+necessary.  Remember `string-match-p' is always case-insensitive
+as is all elisp pattern matching."
   (when (and (stringp data)
              (string-match-p (regexp-quote "validation required") data))
     (display-warning
@@ -896,7 +902,10 @@ The two hashtables being reconciled are `nnhackernews-location-hashtb' and
                                  &allow-other-keys)
   "Prefix errors with CALLER executing synchronous request to URL.
 
-Request shall contain ATTRIBUTES, one of which is PARSER of the response, if provided (shall default to verbatim dump of response, if not).  BACKEND can be curl (defaults to `url-retrieve').  TIMEOUT is seconds, default 10."
+Request shall contain ATTRIBUTES, one of which is PARSER of the
+response, if provided (shall default to verbatim dump of
+response, if not).  BACKEND can be curl (defaults to
+`url-retrieve').  TIMEOUT is seconds, default 10."
   (unless parser
     (setq attributes (append attributes (list :parser #'buffer-string))))
   (setq attributes
@@ -911,7 +920,8 @@ Request shall contain ATTRIBUTES, one of which is PARSER of the response, if pro
            attributes)))
 
 (cl-defun nnhackernews--request-vote-success (item vote &key data &allow-other-keys)
-  "If necessary, login first, then locate ITEM VOTE link in DATA (will depend on VOTE sign)."
+  "If necessary, login first.
+Then locate ITEM VOTE link in DATA (will depend on VOTE sign)."
   (let* ((dom (nnhackernews--domify data))
          (before (format "%s_%s" (if (> vote 0) "up" "un") item))
          (after (format "%s_%s" (if (<= vote 0) "up" "un") item))
@@ -1024,7 +1034,9 @@ Request shall contain ATTRIBUTES, one of which is PARSER of the response, if pro
                                              (request-response-status-code response)))
   "Refer to CALLER when reporting a submit error.
 
-Also report http code of RESPONSE, which is distinct from SYMBOL-STATUS, and ERROR-THROWN.  The http code is stored in RESPONSE-STATUS."
+Also report http code of RESPONSE, which is distinct from
+SYMBOL-STATUS, and ERROR-THROWN.  The http code is stored in
+RESPONSE-STATUS."
   (gnus-message 3 "%s %s: http status %s, %s" caller symbol-status response-status
                 (error-message-string error-thrown)))
 
@@ -1032,8 +1044,9 @@ Also report http code of RESPONSE, which is distinct from SYMBOL-STATUS, and ERR
     (caller posturl postdata retry &key data response &allow-other-keys)
   "If necessary, login, then \"goto\" fields take us to target.
 
-And if accused of being a bot, retry with CALLER, POSTURL, POSTDATA
-\(and toggle RETRY).  Use DATA and RESPONSE to determine if we need to login again."
+And if accused of being a bot, retry with CALLER, POSTURL,
+POSTDATA \(and toggle RETRY).  Use DATA and RESPONSE to determine
+if we need to login again."
   (let* ((dom (nnhackernews--domify data))
          (form (car (alist-get 'form (alist-get 'body dom))))
          (url (request-response-url response))
@@ -1125,8 +1138,8 @@ Factor out commonality between text and link submit."
 (defun nnhackernews--select-items (start-item max-item all-stories)
   "Return a list of items to retrieve between START-ITEM and MAX-ITEM.
 
-Since we are constrained by `nnhackernews-max-items-per-scan', we prioritize
-ALL-STORIES and may throw away comments, etc."
+Since we are constrained by `nnhackernews-max-items-per-scan', we
+prioritize ALL-STORIES and may throw away comments, etc."
   (mapcar
    #'number-to-string
    (if (> (1+ (- max-item start-item)) nnhackernews-max-items-per-scan)
@@ -1155,7 +1168,8 @@ ALL-STORIES and may throw away comments, etc."
 (defun nnhackernews--incoming (&optional static-max-item static-newstories)
   "Drink from the firehose.
 
-Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out."
+Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to
+prevent querying out."
   (interactive)
   (setq nnhackernews--debug-request-items nil)
   (unless nnhackernews--last-item
@@ -1460,7 +1474,8 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
                                                     immediate))))))))
 
 (defmacro nnhackernews--set-status-string (dom)
-  "Set `nnhackernews-status-string' to DOM remarks for benefit of `nnheader-report'."
+  "Set `nnhackernews-status-string' to DOM remarks.
+We do this for the benefit of `nnheader-report'."
   `(let ((body (alist-get 'body ,dom))
          remarks)
      (-tree-map-nodes
