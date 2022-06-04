@@ -1568,8 +1568,8 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
     (setq result (cl-delete "^Subject:" result :test (lambda (x y) (cl-search x (car y)))))
     (setq result (cl-delete references-key result :test (lambda (x y) (cl-search x (car y)))))
     (push (append '("^\\(Message-I[Dd]\\|^In-Reply-To\\):") references-value) result)
-    (push '("^Subject:" ": *\\(.+\\)$" 1 (>= gnus-button-browse-level 0)
-            nnhackernews--browse-story 1)
+    (push '("^Subject:" ".+" 0 (>= gnus-button-browse-level 0)
+            nnhackernews--browse-story 0)
           result)
     result))
 
@@ -1603,21 +1603,22 @@ Optionally provide STATIC-MAX-ITEM and STATIC-NEWSTORIES to prevent querying out
            (error (error-message-string err)))))))
   "In case of shr failures, dump original link.")
 
-(defsubst nnhackernews--dense-time (time)
+(defsubst nnhackernews--dense-time (time*)
   "Convert TIME to a floating point number.
-
 Written by John Wiegley (https://github.com/jwiegley/dot-emacs)."
-  (+ (* (car time) 65536.0)
-     (cadr time)
-     (/ (or (car (cdr (cdr time))) 0) 1000000.0)))
+  (let ((time (if (fboundp 'time-convert)
+                  (funcall #'time-convert time* 'list)
+                (identity time*))))
+    (+ (* (car time) 65536.0)
+       (cadr time)
+       (/ (or (car (cdr (cdr time))) 0) 1000000.0))))
 
 (defalias 'nnhackernews--format-time-elapsed
   (lambda (header)
-    (condition-case nil
+    (condition-case err
         (let ((date (mail-header-date header)))
-          (if (> (length date) 0)
-              (let*
-                  ((then (nnhackernews--dense-time
+          (when (> (length date) 0)
+            (let* ((then (nnhackernews--dense-time
                           (apply #'encode-time (parse-time-string date))))
                    (now (nnhackernews--dense-time (current-time)))
                    (diff (- now then))
@@ -1651,15 +1652,14 @@ Written by John Wiegley (https://github.com/jwiegley/dot-emacs)."
                       (format "%3ds" (floor diff)))))
                    (stripped
                     (replace-regexp-in-string "\\.0" "" str)))
-                (concat (cond
-                         ((= 2 (length stripped)) "  ")
-                         ((= 3 (length stripped)) " ")
-                         (t ""))
-                        stripped))))
+              (concat (cond
+                       ((= 2 (length stripped)) "  ")
+                       ((= 3 (length stripped)) " ")
+                       (t ""))
+                      stripped))))
       ;; print some spaces and pretend nothing happened.
-      (error "    ")))
+      (error (format "%S" err))))
   "Return time elapsed since HEADER was sent.
-
 Written by John Wiegley (https://github.com/jwiegley/dot-emacs).")
 
 ;; Evade package-lint!
