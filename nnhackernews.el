@@ -1277,9 +1277,9 @@ prevent querying out."
       (erase-buffer)
       (if-let ((header (nnhackernews--get-header article-number group)))
           (let* ((mail-header (nnhackernews--make-header article-number))
-               (score (cdr (assq 'X-Hackernews-Score (mail-header-extra mail-header))))
-               (permalink (cdr (assq 'X-Hackernews-Permalink (mail-header-extra mail-header))))
-               (body (nnhackernews--massage (nnhackernews--get-body header server))))
+                 (score (cdr (assq 'X-Hackernews-Score (mail-header-extra mail-header))))
+                 (permalink (cdr (assq 'X-Hackernews-Permalink (mail-header-extra mail-header))))
+                 (body (nnhackernews--massage (nnhackernews--get-body header server))))
           (when body
             (insert
              "Newsgroups: " group "\n"
@@ -1567,11 +1567,13 @@ We do this for the benefit of `nnheader-report'."
 (defun nnhackernews--browse-story (&rest _args)
   "What happens when I click on hackernews Subject."
   (-when-let* ((group-article gnus-article-current)
-               (url (plist-get (nnhackernews--retrieve-root
-                                (nnhackernews--get-header
-                                 (cdr group-article)
-                                 (gnus-group-real-name (car group-article))))
-                           :url)))
+               (url (or (gnus-fetch-original-field "Archived-At")
+                        (plist-get (nnhackernews--retrieve-root
+                                    (nnhackernews--get-header
+                                     (cdr group-article)
+                                     (gnus-group-real-name
+                                      (car group-article))))
+                                   :url))))
     (browse-url url)))
 
 (defun nnhackernews--header-button-alist ()
