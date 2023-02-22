@@ -1353,7 +1353,7 @@ prevent querying out."
            (newsrc-mark-ranges-shifted
             (mapcar (lambda (what-ranges)
                       (cl-case (car what-ranges)
-                        ('seen `(seen (1 . ,(length remaining))))
+                        (seen `(seen (1 . ,(length remaining))))
                         (t (cons (car what-ranges)
                                  (nnhackernews--shift-ranges delta (cdr what-ranges))))))
                     newsrc-mark-ranges)))
